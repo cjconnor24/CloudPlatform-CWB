@@ -5,6 +5,8 @@ VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CWBSampleLibrary", "CWBSampleLibrary\CWBSampleLibrary.csproj", "{9F4BC1B2-A32B-4085-8327-12001FE434FD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CWBSampleLibrary_WebJob", "CWBSampleLibrary_WebJob\CWBSampleLibrary_WebJob.csproj", "{F214594E-29CB-411A-ACB4-F1A1802756C9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{9F4BC1B2-A32B-4085-8327-12001FE434FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9F4BC1B2-A32B-4085-8327-12001FE434FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9F4BC1B2-A32B-4085-8327-12001FE434FD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F214594E-29CB-411A-ACB4-F1A1802756C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F214594E-29CB-411A-ACB4-F1A1802756C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F214594E-29CB-411A-ACB4-F1A1802756C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F214594E-29CB-411A-ACB4-F1A1802756C9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
