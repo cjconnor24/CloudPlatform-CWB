@@ -12,6 +12,7 @@ using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.Queue;
 using Microsoft.WindowsAzure.Storage.Table;
+using Newtonsoft.Json;
 
 namespace CWBSampleLibrary.Controllers
 {
@@ -126,7 +127,8 @@ namespace CWBSampleLibrary.Controllers
             table.Execute(updateoOperation);
 
             // ADD A MESSAGE IN THE QUEUE TO PICKUP THE NEW BLOB
-            getsamplegeneratorQueue().AddMessage(new CloudQueueMessage(System.Text.Encoding.UTF8.GetBytes(fileName)));
+            //getsamplegeneratorQueue().AddMessage(new CloudQueueMessage(System.Text.Encoding.UTF8.GetBytes(fileName)));
+            getsamplegeneratorQueue().AddMessage(new CloudQueueMessage(JsonConvert.SerializeObject(sampleEntity)));
             System.Diagnostics.Trace.WriteLine(String.Format("*** WebRole: Enqueued '{0}'", path));
 
             return Ok(sampleEntity);

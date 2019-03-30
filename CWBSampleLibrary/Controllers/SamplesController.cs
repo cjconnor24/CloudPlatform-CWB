@@ -17,6 +17,9 @@ namespace CWBSampleLibrary.Controllers
         //        private const String partitionName = "Samples_Partition_1";
         private const String partitionName = "samples_Partition_1";
 
+        // CONSTANT FOR REPRESENT TABLE NAME
+        public const String TABLE_NAME = "Samples";
+
         private CloudStorageAccount storageAccount;
         private CloudTableClient tableClient;
         private CloudTable table;
@@ -25,7 +28,7 @@ namespace CWBSampleLibrary.Controllers
         {
             storageAccount = CloudStorageAccount.Parse(ConfigurationManager.ConnectionStrings["AzureWebJobsStorage"].ToString());
             tableClient = storageAccount.CreateCloudTableClient();
-            table = tableClient.GetTableReference("Samples");
+            table = tableClient.GetTableReference(TABLE_NAME);
         }
 
         /// <summary>

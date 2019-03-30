@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using CWBSampleLibrary.Models;
 using Microsoft.Azure.WebJobs;
 using Microsoft.WindowsAzure.Storage.Blob;
+using Microsoft.WindowsAzure.Storage.Table;
 using NAudio.Wave;
 
 namespace CWBSampleLibrary_WebJob
@@ -20,48 +21,57 @@ namespace CWBSampleLibrary_WebJob
         // "audiogallery" is name of storage container; "images" and "thumbanils" are folder names. 
         // "{queueTrigger}" is an inbuilt variable taking on value of contents of message automatically;
         // the other variables are valued automatically.
+        //public static void GenerateSample(
+        //[QueueTrigger("samplegenerator")] String blobInfo,
+        //[Blob("audiogallery/files/{queueTrigger}")] CloudBlockBlob inputBlob,
+        //[Blob("audiogallery/samples/{queueTrigger}")] CloudBlockBlob outputBlob, TextWriter logger)
+
+        public const String TABLE_NAME = "Samples";
+
         public static void GenerateSample(
-        [QueueTrigger("samplegenerator")] String blobInfo,
-        [Blob("audiogallery/files/{queueTrigger}")] CloudBlockBlob inputBlob,
-        [Blob("audiogallery/samples/{queueTrigger}")] CloudBlockBlob outputBlob, TextWriter logger)
+            [QueueTrigger("samplegenerator")] SampleEntity queueSample,
+            [Table(TABLE_NAME, "{PartitionKey}","{RowKey}")] SampleEntity tableSample,
+            [Table(TABLE_NAME)] CloudTable tableBinding, TextWriter logger)
         {
 
-            var s = new SampleEntity("Test Key", "Test Id");
-
-            logger.WriteLine(s.PartitionKey);
+            
 
 
-            logger.WriteLine("GenerateSample() started:");
-            logger.WriteLine("Input blob is: " + blobInfo);
-
-            // MAKE SURE THE INCOMING BLOB HAS AN MP3 EXTENSION
-            if (Path.GetExtension(inputBlob.Name) == ".mp3")
-            {
-
-                // OPEN THE INPUT AND OUTPUT STREAMS FOR MODIFICATION
-                using (Stream input = inputBlob.OpenRead())
-                using (Stream output = outputBlob.OpenWrite())
-                {
-                    // CREATE THE SAMPLE FOR 20s AND UPDATE MIME TYPES
-                    CreateAudioSample(input, output, 20);
-                    outputBlob.Properties.ContentType = "audio/mpeg3";
-                }
-
-                logger.WriteLine("GenerateSample() completed...");
+            logger.WriteLine(queueSample.ToString());
+            logger.WriteLine(tableSample.ToString());
 
 
-                // GET META DATA
-                inputBlob.FetchAttributes();
-                // WRITE TITLE TO NEW SAMPLE BLOB
-                outputBlob.Metadata["Title"] = inputBlob.Metadata["Title"];
-                // SAVE THE METADATA
-                outputBlob.SetMetadata();
-            }
-            else
-            {
+            //logger.WriteLine("GenerateSample() started:");
+            //logger.WriteLine("Input blob is: " + blobInfo);
 
-                logger.WriteLine("Sample not processed. No MP3 extension");
-            }
+            //// MAKE SURE THE INCOMING BLOB HAS AN MP3 EXTENSION
+            //if (Path.GetExtension(inputBlob.Name) == ".mp3")
+            //{
+
+            //    // OPEN THE INPUT AND OUTPUT STREAMS FOR MODIFICATION
+            //    using (Stream input = inputBlob.OpenRead())
+            //    using (Stream output = outputBlob.OpenWrite())
+            //    {
+            //        // CREATE THE SAMPLE FOR 20s AND UPDATE MIME TYPES
+            //        CreateAudioSample(input, output, 20);
+            //        outputBlob.Properties.ContentType = "audio/mpeg3";
+            //    }
+
+            //    logger.WriteLine("GenerateSample() completed...");
+
+
+            //    // GET META DATA
+            //    inputBlob.FetchAttributes();
+            //    // WRITE TITLE TO NEW SAMPLE BLOB
+            //    outputBlob.Metadata["Title"] = inputBlob.Metadata["Title"];
+            //    // SAVE THE METADATA
+            //    outputBlob.SetMetadata();
+            //}
+            //else
+            //{
+
+            //    logger.WriteLine("Sample not processed. No MP3 extension");
+            //}
 
             // DEBUGGING LOG
             logger.WriteLine("GenerateSample() complete.");
