@@ -16,59 +16,26 @@ using Newtonsoft.Json;
 
 namespace CWBSampleLibrary.Controllers
 {
-    public class Mp3sController : ApiController
+    public class Mp3sController : BaseController
     {
 
-        //        private const String partitionName = "Samples_Partition_1";
-        private const String partitionName = "samples_Partition_1";
-        // accessor variables and methods for blob containers and queues
-        private BlobStorageService _blobStorageService = new BlobStorageService();
-        private CloudQueueService _queueStorageService = new CloudQueueService();
-        private CloudStorageAccount _storageAccount;
-        private CloudTableClient _tableClient;
-        private CloudTable table;
-        //        private CloudBlobContainer audioGalleryContainer;
-        //        private CloudQueue sampleQueue;
 
-        private CloudBlobContainer getaudiogalleryContainer()
-        {
-            return _blobStorageService.getCloudBlobContainer();
-        }
+        /// <summary>
+        /// Construct the Mp3 controller and get the necessary references from base class
+        /// </summary>
+        public Mp3sController() : base(){}
 
-        private CloudQueue getsamplegeneratorQueue()
-        {
-            return _queueStorageService.getCloudQueue();
-        }
-
-        public Mp3sController()
-        {
-            _storageAccount = CloudStorageAccount.Parse(ConfigurationManager.ConnectionStrings["AzureWebJobsStorage"].ToString());
-            _tableClient = _storageAccount.CreateCloudTableClient();
-            table = _tableClient.GetTableReference("Samples");
-            //            audioGalleryContainer = _blobStorageService.getCloudBlobContainer();
-            //            sampleQueue = _queueStorageService.getCloudQueue();
-        }
-
-        // GET: api/Mp3s
-        public IEnumerable<string> Get()
-        {
-            return new string[] { "value1", "value2" };
-        }
-
-        // GET: api/Mp3s/5
-        public string Get(int id)
-        {
-            return "value";
-        }
 
         // POST: api/Mp3s
+        /// <summary>
+        /// Upload an mp3 related to an mp3. Puts the mp3 into the sample queue to create a sample.
+        /// </summary>
+        /// <param name="id">Id of the sample entity to upload the file for</param>
+        /// <returns>The details of the sample</returns>
         [ResponseType(typeof(Sample))]
         public IHttpActionResult Post(string id)
         {
-
-
-
-            Console.WriteLine(id);
+            
             // GET THE ID - MAKE SURE IT ISNT BLANK
             if (id == null)
             {
@@ -77,29 +44,28 @@ namespace CWBSampleLibrary.Controllers
             }
 
             // CHECK THE ID EXISTS IN THE TABLE ALREADY
-            // Create a retrieve operation that takes a sample entity.
             TableOperation getOperation = TableOperation.Retrieve<SampleEntity>(partitionName, id);
 
-            // Execute the retrieve operation.
+            // EXECUTE THE GET OPERATION
             TableResult getOperationResult = table.Execute(getOperation);
 
-            // Construct response including a new DTO as apprporiate
+            // CHCEK TO SEE IF THE SAMPLE EXISTS
             if (getOperationResult.Result == null) return NotFound();
 
             // OTHERWISE GET THE SAMPLE
             SampleEntity sampleEntity = (SampleEntity)getOperationResult.Result;
-            //            Sample sample = new Sample()
-            //            {
-            //                SampleID = sampleEntity.RowKey,
-            //                Title = sampleEntity.Title,
-            //                Artist = sampleEntity.Artist
-            //
-            //            };
+            Sample sample = new Sample()
+            {
+                SampleID = sampleEntity.RowKey,
+                Title = sampleEntity.Title,
+                Artist = sampleEntity.Artist
+            
+            };
 
             // CHECK IF BLOBS EXISTS ALREADY
             if (sampleEntity.Mp3Blob != null)
             {
-                // TODO: DELETE THE EXISTING BLOBS
+                // DELETE EXISTING BLOBS
                 Delete(sampleEntity);
             }
 
@@ -110,10 +76,8 @@ namespace CWBSampleLibrary.Controllers
 
             // GET THE BINARY SAMPLE BEING UPLOADED
             var postData = HttpContext.Current.Request;
-            //            var filename = 
             var blob = getaudiogalleryContainer().GetBlockBlobReference(path);
             blob.Properties.ContentType = "audio/mpeg3";
-            blob.Metadata["Title"] = title;
 
             // SAVE THE BLOB
             blob.UploadFromStream(postData.InputStream);
@@ -127,24 +91,18 @@ namespace CWBSampleLibrary.Controllers
             table.Execute(updateoOperation);
 
             // ADD A MESSAGE IN THE QUEUE TO PICKUP THE NEW BLOB
-            //getsamplegeneratorQueue().AddMessage(new CloudQueueMessage(System.Text.Encoding.UTF8.GetBytes(fileName)));
             getsamplegeneratorQueue().AddMessage(new CloudQueueMessage(JsonConvert.SerializeObject(sampleEntity)));
             System.Diagnostics.Trace.WriteLine(String.Format("*** WebRole: Enqueued '{0}'", path));
 
-            return Ok(sampleEntity);
-            //            return Ok();
+            return Ok(sample);
 
-        }
-
-        // PUT: api/Mp3s/5
-        public IHttpActionResult Put(int id, [FromBody]string value)
-        {
-            Console.WriteLine(id);
-            Console.WriteLine(value);
-            return Ok();
         }
 
         // DELETE: api/Mp3s/5
+        /// <summary>
+        /// Delete any blobs associated with the provided sample ID
+        /// </summary>
+        /// <param name="sample">The sample ID to check for blobs and delete</param>
         public void Delete(SampleEntity sample)
         {
             if (sample.Mp3Blob != null)
@@ -160,6 +118,7 @@ namespace CWBSampleLibrary.Controllers
 
             }
 
+            // CHECK THE SHORT SAMPLES AND DELETE
             if (sample.SampleMp3Blob != null)
             {
                 // GET SAMPLE REFERENCE AND DELETE

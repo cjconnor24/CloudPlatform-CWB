@@ -12,41 +12,33 @@ using Microsoft.WindowsAzure.Storage.Table;
 
 namespace CWBSampleLibrary.Controllers
 {
-    public class SamplesController : ApiController
+    public class SamplesController : BaseController
     {
-        //        private const String partitionName = "Samples_Partition_1";
-        private const String partitionName = "samples_Partition_1";
 
-        // CONSTANT FOR REPRESENT TABLE NAME
-        public const String TABLE_NAME = "Samples";
-
-        private CloudStorageAccount storageAccount;
-        private CloudTableClient tableClient;
-        private CloudTable table;
-
-        public SamplesController()
+        public SamplesController() : base()
         {
-            storageAccount = CloudStorageAccount.Parse(ConfigurationManager.ConnectionStrings["AzureWebJobsStorage"].ToString());
-            tableClient = storageAccount.CreateCloudTableClient();
-            table = tableClient.GetTableReference(TABLE_NAME);
+
         }
 
         /// <summary>
-        /// Get all samples
+        /// Return a list of all samples
         /// </summary>
-        /// <returns></returns>
+        /// <returns>An IEnumerable list of samples</returns>
         // GET: api/Samples
         public IEnumerable<Sample> Get()
         {
             try
             {
 
-
-                TableQuery<SampleEntity> query = new TableQuery<SampleEntity>().Where(
+                // GET THE SAMPLES FROM THE DB
+                TableQuery<SampleEntity> query = new TableQuery<SampleEntity>()
+                    .Where(
                     TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, partitionName));
                 List<SampleEntity> entityList = new List<SampleEntity>(table.ExecuteQuery(query));
 
-                // Basically create a list of Sample from the list of SampleEntity with a 1:1 object relationship, filtering data as needed
+                // TODO: REFACTOR THIS - REMOVE THE TRY AND CATCH
+
+                // CREATE A LIST OF Sample() Objects to be returned from the API
                 IEnumerable<Sample> sampleList = from e in entityList
                                                  select new Sample()
                                                  {
@@ -59,7 +51,7 @@ namespace CWBSampleLibrary.Controllers
             }
             catch (Exception e)
             {
-
+                // IF there are none - return an empty list
                 IEnumerable<Sample> s = new List<Sample>();
                 return s;
             }
@@ -67,10 +59,10 @@ namespace CWBSampleLibrary.Controllers
 
         // GET: api/Samples/5
         /// <summary>
-        /// Get a sample
+        /// Retrieve a specific sample resource based on the ID
         /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
+        /// <param name="id">The id of the sample to be retrieve</param>
+        /// <returns>A sample if it exists</returns>
         [ResponseType(typeof(Sample))]
         public IHttpActionResult GetSample(string id)
         {
@@ -99,11 +91,10 @@ namespace CWBSampleLibrary.Controllers
 
         // POST: api/Samples
         /// <summary>
-        /// Create a new sample
+        /// Create a new sample entity in the DB
         /// </summary>
-        /// <param name="sample"></param>
-        /// <returns></returns>
-        //[SwaggerResponse(HttpStatusCode.Created)]
+        /// <param name="sample">The sample to be stored in the DB</param>
+        /// <returns>The sample object created</returns>
         [ResponseType(typeof(Sample))]
         public IHttpActionResult PostSample(Sample sample)
         {
@@ -116,6 +107,7 @@ namespace CWBSampleLibrary.Controllers
             // GET THE ID FOR THE NEW ENTITY
             String sId = getNewMaxRowKeyValue();
 
+            // CREATE THE NEW ENTITY
             SampleEntity sampleEntity = new SampleEntity()
             {
                 RowKey = sId,
@@ -145,12 +137,11 @@ namespace CWBSampleLibrary.Controllers
 
         // PUT: api/Samples/5
         /// <summary>
-        /// Update a sample
+        /// Update an existing sample in the DB
         /// </summary>
-        /// <param name="id"></param>
-        /// <param name="sample"></param>
+        /// <param name="id">The id of the sample to be updated</param>
+        /// <param name="sample">The sample object data to be updated</param>
         /// <returns></returns>
-        //[SwaggerResponse(HttpStatusCode.NoContent)]
         [ResponseType(typeof(void))]
         public IHttpActionResult PutSample(string id, Sample sample)
         {
@@ -179,6 +170,7 @@ namespace CWBSampleLibrary.Controllers
             // Assign the result to a SampleEntity object.
             SampleEntity updateEntity = (SampleEntity)retrievedResult.Result;
 
+            // Delete any existing blobs in storage
             Mp3sController mp3s = new Mp3sController();
             mp3s.Delete(updateEntity);
 
@@ -189,10 +181,10 @@ namespace CWBSampleLibrary.Controllers
             updateEntity.SampleMp3Blob = null;
             updateEntity.SampleMp3Url = null;
 
-            // Creat the update operation
+            // CREATE THE UPDATE OPERATION
             var updateOperation = TableOperation.InsertOrReplace(updateEntity);
 
-            // Execute the insert operation.
+            // EXECUTE THE UPDATE OPERATION
             table.Execute(updateOperation);
 
             return StatusCode(HttpStatusCode.NoContent);
@@ -200,10 +192,10 @@ namespace CWBSampleLibrary.Controllers
 
         // DELETE: api/Samples/5
         /// <summary>
-        /// Delete a sample
+        /// Delete an existing sample
         /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
+        /// <param name="id">The ID of the sample to be deleted</param>
+        /// <returns>201 status code if successful</returns>
         [ResponseType(typeof(Sample))]
         public IHttpActionResult DeleteSample(string id)
         {
@@ -218,15 +210,19 @@ namespace CWBSampleLibrary.Controllers
             }
             else
             {
+
+                // GET THE RESULT TO DELETE
                 SampleEntity deleteEntity = (SampleEntity)retrievedResult.Result;
 
                 // REMOVE ANY RELATED MP3 IN BLOB STORAGE
                 Mp3sController mp3 = new Mp3sController();
                 mp3.Delete(deleteEntity);
 
+
+                // CREATE THE DELETE OPERATION
                 TableOperation deleteOperation = TableOperation.Delete(deleteEntity);
 
-                // Execute the operation.
+                // EXECUTE THE DELETE OPERATION
                 table.Execute(deleteOperation);
 
                 // JUST RETURN A 204
@@ -235,9 +231,9 @@ namespace CWBSampleLibrary.Controllers
         }
 
         /// <summary>
-        /// Returns the next row id value based on the entries in the table
+        /// Get the next ID in the database
         /// </summary>
-        /// <returns>Row ID</returns>
+        /// <returns>The next sequencial ID in the database</returns>
         private String getNewMaxRowKeyValue()
         {
 
@@ -250,12 +246,14 @@ namespace CWBSampleLibrary.Controllers
             {
 
                 int maxRowKeyValue = 0;
+                // LOOP THROUGH THE RESULTS, CHECKING THE IDS
                 foreach (SampleEntity entity in results)
                 {
                     int entityRowKeyValue = Int32.Parse(entity.RowKey);
                     if (entityRowKeyValue > maxRowKeyValue) maxRowKeyValue = entityRowKeyValue;
                 }
 
+                // GET THE NEXT VALUE IN THE SEQUENCE
                 maxRowKeyValue++;
                 return maxRowKeyValue.ToString();
 
