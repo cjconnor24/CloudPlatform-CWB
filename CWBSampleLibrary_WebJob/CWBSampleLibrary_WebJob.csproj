@@ -93,6 +93,12 @@
     <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CWBSampleLibrary\CWBSampleLibrary.csproj">
+      <Project>{9f4bc1b2-a32b-4085-8327-12001fe434fd}</Project>
+      <Name>CWBSampleLibrary</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using CWBSampleLibrary.Models;
 using Microsoft.Azure.WebJobs;
 using Microsoft.WindowsAzure.Storage.Blob;
 using NAudio.Wave;
@@ -24,6 +25,11 @@ namespace CWBSampleLibrary_WebJob
         [Blob("audiogallery/files/{queueTrigger}")] CloudBlockBlob inputBlob,
         [Blob("audiogallery/samples/{queueTrigger}")] CloudBlockBlob outputBlob, TextWriter logger)
         {
+
+            var s = new SampleEntity("Test Key", "Test Id");
+
+            logger.WriteLine(s.PartitionKey);
+
 
             logger.WriteLine("GenerateSample() started:");
             logger.WriteLine("Input blob is: " + blobInfo);
