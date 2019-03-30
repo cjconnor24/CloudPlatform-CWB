@@ -105,7 +105,7 @@ namespace CWBSampleLibrary.Controllers
 
             // CREATE NAME FROM Sample Data
             string title = sampleEntity.Title;
-            string fileName = string.Format("{0}{1}{2}", Guid.NewGuid(), title.Replace(" ", "-"), ".mp3");
+            string fileName = string.Format("{0}-{1}{2}", Guid.NewGuid(), title.Replace(" ", "-"), ".mp3");
             string path = "files/" + fileName;
 
             // GET THE BINARY SAMPLE BEING UPLOADED
@@ -145,14 +145,31 @@ namespace CWBSampleLibrary.Controllers
         }
 
         // DELETE: api/Mp3s/5
-        private void Delete(SampleEntity sample)
+        public void Delete(SampleEntity sample)
         {
             if (sample.Mp3Blob != null)
             {
                 // GET BLOB REFERENCE AND DELETE
-                getaudiogalleryContainer()
+                var Mp3 = getaudiogalleryContainer()
                     .GetDirectoryReference("files")
-                    .GetBlobReference(sample.Mp3Blob).Delete();
+                    .GetBlobReference(sample.Mp3Blob);
+                if (Mp3.Exists())
+                {
+                    Mp3.Delete();
+                }
+
+            }
+
+            if (sample.SampleMp3Blob != null)
+            {
+                // GET SAMPLE REFERENCE AND DELETE
+                var Mp3Sample = getaudiogalleryContainer()
+                    .GetDirectoryReference("samples")
+                    .GetBlobReference(sample.SampleMp3Blob);
+                if (Mp3Sample.Exists())
+                {
+                    Mp3Sample.Delete();
+                }
             }
             
         }
