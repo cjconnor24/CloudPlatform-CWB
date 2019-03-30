@@ -38,19 +38,31 @@ namespace CWBSampleLibrary.Controllers
         // GET: api/Samples
         public IEnumerable<Sample> Get()
         {
-            TableQuery<SampleEntity> query = new TableQuery<SampleEntity>().Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, partitionName));
-            List<SampleEntity> entityList = new List<SampleEntity>(table.ExecuteQuery(query));
+            try
+            {
 
-            // Basically create a list of Sample from the list of SampleEntity with a 1:1 object relationship, filtering data as needed
-            IEnumerable<Sample> sampleList = from e in entityList
-                                             select new Sample()
-                                             {
-                                                 SampleID = e.RowKey,
-                                                 Title = e.Title,
-                                                 Artist = e.Artist,
-                                                 SampleMp3Url = e.SampleMp3Url
-                                             };
-            return sampleList;
+
+                TableQuery<SampleEntity> query = new TableQuery<SampleEntity>().Where(
+                    TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, partitionName));
+                List<SampleEntity> entityList = new List<SampleEntity>(table.ExecuteQuery(query));
+
+                // Basically create a list of Sample from the list of SampleEntity with a 1:1 object relationship, filtering data as needed
+                IEnumerable<Sample> sampleList = from e in entityList
+                                                 select new Sample()
+                                                 {
+                                                     SampleID = e.RowKey,
+                                                     Title = e.Title,
+                                                     Artist = e.Artist,
+                                                     SampleMp3Url = e.SampleMp3Url
+                                                 };
+                return sampleList;
+            }
+            catch (Exception e)
+            {
+
+                IEnumerable<Sample> s = new List<Sample>();
+                return s;
+            }
         }
 
         // GET: api/Samples/5
@@ -77,7 +89,8 @@ namespace CWBSampleLibrary.Controllers
                 {
                     SampleID = sampleEntity.RowKey,
                     Title = sampleEntity.Title,
-                    Artist = sampleEntity.Artist
+                    Artist = sampleEntity.Artist,
+                    SampleMp3Url = sampleEntity.SampleMp3Url
 
                 };
                 return Ok(sample);
@@ -204,6 +217,11 @@ namespace CWBSampleLibrary.Controllers
             else
             {
                 SampleEntity deleteEntity = (SampleEntity)retrievedResult.Result;
+
+                // REMOVE ANY RELATED MP3 IN BLOB STORAGE
+                Mp3sController mp3 = new Mp3sController();
+                mp3.Delete(deleteEntity);
+
                 TableOperation deleteOperation = TableOperation.Delete(deleteEntity);
 
                 // Execute the operation.
@@ -214,18 +232,36 @@ namespace CWBSampleLibrary.Controllers
             }
         }
 
+        /// <summary>
+        /// Returns the next row id value based on the entries in the table
+        /// </summary>
+        /// <returns>Row ID</returns>
         private String getNewMaxRowKeyValue()
         {
-            TableQuery<SampleEntity> query = new TableQuery<SampleEntity>().Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, partitionName));
 
-            int maxRowKeyValue = 0;
-            foreach (SampleEntity entity in table.ExecuteQuery(query))
+            TableQuery<SampleEntity> query = new TableQuery<SampleEntity>()
+                .Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, partitionName));
+
+            // MAKE SURE THERE ARE TABLE ROWS BEFORE ATTEMPTING TO ITERATE
+            var results = table.ExecuteQuery(query);
+            if (results.Any())
             {
-                int entityRowKeyValue = Int32.Parse(entity.RowKey);
-                if (entityRowKeyValue > maxRowKeyValue) maxRowKeyValue = entityRowKeyValue;
+
+                int maxRowKeyValue = 0;
+                foreach (SampleEntity entity in results)
+                {
+                    int entityRowKeyValue = Int32.Parse(entity.RowKey);
+                    if (entityRowKeyValue > maxRowKeyValue) maxRowKeyValue = entityRowKeyValue;
+                }
+
+                maxRowKeyValue++;
+                return maxRowKeyValue.ToString();
+
             }
-            maxRowKeyValue++;
-            return maxRowKeyValue.ToString();
+
+            // IF NO RESULTS, RETURN 1
+            return 1.ToString();
+
         }
     }
 }
