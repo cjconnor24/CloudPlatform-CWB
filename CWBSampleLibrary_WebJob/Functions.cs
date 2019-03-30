@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using CWBSampleLibrary;
 using CWBSampleLibrary.Models;
 using Microsoft.Azure.WebJobs;
 using Microsoft.WindowsAzure.Storage.Blob;
@@ -34,44 +35,58 @@ namespace CWBSampleLibrary_WebJob
             [Table(TABLE_NAME)] CloudTable tableBinding, TextWriter logger)
         {
 
-            
+            // GET THE BLOB REFERENCE
+            BlobStorageService blobStorageService = new BlobStorageService();
+            CloudBlobContainer audioGalleryContainer = blobStorageService.getCloudBlobContainer();
+
+            CloudBlob inputBlob = audioGalleryContainer
+                .GetDirectoryReference("files")
+                .GetBlobReference(tableSample.Mp3Blob);
+
+            CloudBlockBlob outputBlob = audioGalleryContainer
+                .GetDirectoryReference("samples")
+                .GetBlockBlobReference("sample-" + tableSample.Mp3Blob);
+
+            logger.WriteLine(inputBlob.Uri+" "+inputBlob.BlobType + " " +inputBlob.StorageUri + " ");
+            //Stream i = inputBlob.OpenRead();
+            logger.WriteLine("The URL is"+queueSample.Mp3Blob);
+            logger.WriteLine("The ID is " + tableSample.RowKey);
 
 
-            logger.WriteLine(queueSample.ToString());
-            logger.WriteLine(tableSample.ToString());
+//            logger.WriteLine("GenerateSample() started:");
+//            logger.WriteLine("Input blob is: " + blobInfo);
+
+            // MAKE SURE THE INCOMING BLOB HAS AN MP3 EXTENSION
+            if (Path.GetExtension(inputBlob.Name) == ".mp3")
+            {
+
+                // OPEN THE INPUT AND OUTPUT STREAMS FOR MODIFICATION
+                using (Stream input = inputBlob.OpenRead())
+                using (Stream output = outputBlob.OpenWrite())
+                {
+                    // CREATE THE SAMPLE FOR 20s AND UPDATE MIME TYPES
+                    CreateAudioSample(input, output, 20);
+                    outputBlob.Properties.ContentType = "audio/mpeg3";
+                }
+
+                logger.WriteLine("GenerateSample() completed...");
 
 
-            //logger.WriteLine("GenerateSample() started:");
-            //logger.WriteLine("Input blob is: " + blobInfo);
+                // GET META DATA
+                inputBlob.FetchAttributes();
+                // WRITE TITLE TO NEW SAMPLE BLOB
+                outputBlob.Metadata["Title"] = inputBlob.Metadata["Title"];
+                // SAVE THE METADATA
+                outputBlob.SetMetadata();
 
-            //// MAKE SURE THE INCOMING BLOB HAS AN MP3 EXTENSION
-            //if (Path.GetExtension(inputBlob.Name) == ".mp3")
-            //{
+                // TODO: WRITE THE SAMPLE DATA TO THE TABLE
 
-            //    // OPEN THE INPUT AND OUTPUT STREAMS FOR MODIFICATION
-            //    using (Stream input = inputBlob.OpenRead())
-            //    using (Stream output = outputBlob.OpenWrite())
-            //    {
-            //        // CREATE THE SAMPLE FOR 20s AND UPDATE MIME TYPES
-            //        CreateAudioSample(input, output, 20);
-            //        outputBlob.Properties.ContentType = "audio/mpeg3";
-            //    }
+            }
+            else
+            {
 
-            //    logger.WriteLine("GenerateSample() completed...");
-
-
-            //    // GET META DATA
-            //    inputBlob.FetchAttributes();
-            //    // WRITE TITLE TO NEW SAMPLE BLOB
-            //    outputBlob.Metadata["Title"] = inputBlob.Metadata["Title"];
-            //    // SAVE THE METADATA
-            //    outputBlob.SetMetadata();
-            //}
-            //else
-            //{
-
-            //    logger.WriteLine("Sample not processed. No MP3 extension");
-            //}
+                logger.WriteLine("Sample not processed. No MP3 extension");
+            }
 
             // DEBUGGING LOG
             logger.WriteLine("GenerateSample() complete.");
