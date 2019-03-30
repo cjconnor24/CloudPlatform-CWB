@@ -43,9 +43,13 @@ namespace CWBSampleLibrary_WebJob
                 .GetDirectoryReference("files")
                 .GetBlobReference(tableSample.Mp3Blob);
 
+            // CREATE SAMPLE BLOB NAME
+            
+            string newFileName = $"{Guid.NewGuid()}-{tableSample.Title.Replace(" ", "-")}-sample.mp3";
+            string path = "samples/" + newFileName;
+
             CloudBlockBlob outputBlob = audioGalleryContainer
-                .GetDirectoryReference("samples")
-                .GetBlockBlobReference("sample-" + tableSample.Mp3Blob);
+                .GetBlockBlobReference(path);
 
 
             // MAKE SURE THE INCOMING BLOB HAS AN MP3 EXTENSION
@@ -73,7 +77,7 @@ namespace CWBSampleLibrary_WebJob
 
                 // WRITE THE SAMPLE DATA TO THE TABLE
                 tableSample.SampleDate = DateTime.Now;
-                tableSample.SampleMp3Blob = outputBlob.Name;
+                tableSample.SampleMp3Blob = newFileName;
                 tableSample.SampleMp3Url = outputBlob.Uri.ToString();
                 var updateRecord = TableOperation.InsertOrReplace(tableSample);
                 tableBinding.Execute(updateRecord);
