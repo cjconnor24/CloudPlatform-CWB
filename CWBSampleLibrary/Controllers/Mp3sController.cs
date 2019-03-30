@@ -100,7 +100,7 @@ namespace CWBSampleLibrary.Controllers
             if (sampleEntity.Mp3Blob != null)
             {
                 // TODO: DELETE THE EXISTING BLOBS
-                Delete(id);
+                Delete(sampleEntity);
             }
 
             // CREATE NAME FROM Sample Data
@@ -145,8 +145,16 @@ namespace CWBSampleLibrary.Controllers
         }
 
         // DELETE: api/Mp3s/5
-        public void Delete(string id)
+        private void Delete(SampleEntity sample)
         {
+            if (sample.Mp3Blob != null)
+            {
+                // GET BLOB REFERENCE AND DELETE
+                getaudiogalleryContainer()
+                    .GetDirectoryReference("files")
+                    .GetBlobReference(sample.Mp3Blob).Delete();
+            }
+            
         }
     }
 }
