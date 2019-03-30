@@ -4,9 +4,11 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using CWBSampleLibrary;
 using CWBSampleLibrary.Models;
 using Microsoft.Azure.WebJobs;
 using Microsoft.WindowsAzure.Storage.Blob;
+using Microsoft.WindowsAzure.Storage.Table;
 using NAudio.Wave;
 
 namespace CWBSampleLibrary_WebJob
@@ -20,19 +22,35 @@ namespace CWBSampleLibrary_WebJob
         // "audiogallery" is name of storage container; "images" and "thumbanils" are folder names. 
         // "{queueTrigger}" is an inbuilt variable taking on value of contents of message automatically;
         // the other variables are valued automatically.
+        //public static void GenerateSample(
+        //[QueueTrigger("samplegenerator")] String blobInfo,
+        //[Blob("audiogallery/files/{queueTrigger}")] CloudBlockBlob inputBlob,
+        //[Blob("audiogallery/samples/{queueTrigger}")] CloudBlockBlob outputBlob, TextWriter logger)
+
+        public const String TABLE_NAME = "Samples";
+
         public static void GenerateSample(
-        [QueueTrigger("samplegenerator")] String blobInfo,
-        [Blob("audiogallery/files/{queueTrigger}")] CloudBlockBlob inputBlob,
-        [Blob("audiogallery/samples/{queueTrigger}")] CloudBlockBlob outputBlob, TextWriter logger)
+            [QueueTrigger("samplegenerator")] SampleEntity queueSample,
+            [Table(TABLE_NAME, "{PartitionKey}","{RowKey}")] SampleEntity tableSample,
+            [Table(TABLE_NAME)] CloudTable tableBinding, TextWriter logger)
         {
 
-            var s = new SampleEntity("Test Key", "Test Id");
+            // GET THE BLOB REFERENCE
+            BlobStorageService blobStorageService = new BlobStorageService();
+            CloudBlobContainer audioGalleryContainer = blobStorageService.getCloudBlobContainer();
 
-            logger.WriteLine(s.PartitionKey);
+            CloudBlob inputBlob = audioGalleryContainer
+                .GetDirectoryReference("files")
+                .GetBlobReference(tableSample.Mp3Blob);
 
+            // CREATE SAMPLE BLOB NAME
+            
+            string newFileName = $"{Guid.NewGuid()}-{tableSample.Title.Replace(" ", "-")}-sample.mp3";
+            string path = "samples/" + newFileName;
 
-            logger.WriteLine("GenerateSample() started:");
-            logger.WriteLine("Input blob is: " + blobInfo);
+            CloudBlockBlob outputBlob = audioGalleryContainer
+                .GetBlockBlobReference(path);
+
 
             // MAKE SURE THE INCOMING BLOB HAS AN MP3 EXTENSION
             if (Path.GetExtension(inputBlob.Name) == ".mp3")
@@ -56,6 +74,14 @@ namespace CWBSampleLibrary_WebJob
                 outputBlob.Metadata["Title"] = inputBlob.Metadata["Title"];
                 // SAVE THE METADATA
                 outputBlob.SetMetadata();
+
+                // WRITE THE SAMPLE DATA TO THE TABLE
+                tableSample.SampleDate = DateTime.Now;
+                tableSample.SampleMp3Blob = newFileName;
+                tableSample.SampleMp3Url = outputBlob.Uri.ToString();
+                var updateRecord = TableOperation.InsertOrReplace(tableSample);
+                tableBinding.Execute(updateRecord);
+
             }
             else
             {

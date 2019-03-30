@@ -17,6 +17,9 @@ namespace CWBSampleLibrary.Controllers
         //        private const String partitionName = "Samples_Partition_1";
         private const String partitionName = "samples_Partition_1";
 
+        // CONSTANT FOR REPRESENT TABLE NAME
+        public const String TABLE_NAME = "Samples";
+
         private CloudStorageAccount storageAccount;
         private CloudTableClient tableClient;
         private CloudTable table;
@@ -25,7 +28,7 @@ namespace CWBSampleLibrary.Controllers
         {
             storageAccount = CloudStorageAccount.Parse(ConfigurationManager.ConnectionStrings["AzureWebJobsStorage"].ToString());
             tableClient = storageAccount.CreateCloudTableClient();
-            table = tableClient.GetTableReference("Samples");
+            table = tableClient.GetTableReference(TABLE_NAME);
         }
 
         /// <summary>
@@ -35,19 +38,31 @@ namespace CWBSampleLibrary.Controllers
         // GET: api/Samples
         public IEnumerable<Sample> Get()
         {
-            TableQuery<SampleEntity> query = new TableQuery<SampleEntity>().Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, partitionName));
-            List<SampleEntity> entityList = new List<SampleEntity>(table.ExecuteQuery(query));
+            try
+            {
 
-            // Basically create a list of Sample from the list of SampleEntity with a 1:1 object relationship, filtering data as needed
-            IEnumerable<Sample> sampleList = from e in entityList
-                                             select new Sample()
-                                             {
-                                                 SampleID = e.RowKey,
-                                                 Title = e.Title,
-                                                 Artist = e.Artist,
-                                                 SampleMp3Url = e.SampleMp3Url
-                                             };
-            return sampleList;
+
+                TableQuery<SampleEntity> query = new TableQuery<SampleEntity>().Where(
+                    TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, partitionName));
+                List<SampleEntity> entityList = new List<SampleEntity>(table.ExecuteQuery(query));
+
+                // Basically create a list of Sample from the list of SampleEntity with a 1:1 object relationship, filtering data as needed
+                IEnumerable<Sample> sampleList = from e in entityList
+                                                 select new Sample()
+                                                 {
+                                                     SampleID = e.RowKey,
+                                                     Title = e.Title,
+                                                     Artist = e.Artist,
+                                                     SampleMp3Url = e.SampleMp3Url
+                                                 };
+                return sampleList;
+            }
+            catch (Exception e)
+            {
+
+                IEnumerable<Sample> s = new List<Sample>();
+                return s;
+            }
         }
 
         // GET: api/Samples/5
@@ -74,7 +89,8 @@ namespace CWBSampleLibrary.Controllers
                 {
                     SampleID = sampleEntity.RowKey,
                     Title = sampleEntity.Title,
-                    Artist = sampleEntity.Artist
+                    Artist = sampleEntity.Artist,
+                    SampleMp3Url = sampleEntity.SampleMp3Url
 
                 };
                 return Ok(sample);
@@ -163,15 +179,17 @@ namespace CWBSampleLibrary.Controllers
             // Assign the result to a SampleEntity object.
             SampleEntity updateEntity = (SampleEntity)retrievedResult.Result;
 
+            Mp3sController mp3s = new Mp3sController();
+            mp3s.Delete(updateEntity);
+
+            // Create the updates on the object
             updateEntity.Title = sample.Title;
             updateEntity.Artist = sample.Artist;
-            //            updateEntity.Mp3Blob = sample.Mp3Blob;
-            //            updateEntity.SampleMp3Blob = sample.SampleMp3Blob;
-            updateEntity.SampleMp3Url = sample.SampleMp3Url;
+            updateEntity.Mp3Blob = null;
+            updateEntity.SampleMp3Blob = null;
+            updateEntity.SampleMp3Url = null;
 
-            // Create the TableOperation that inserts the sample entity.
-            // Note semantics of InsertOrReplace() which are consistent with PUT
-            // See: https://stackoverflow.com/questions/14685907/difference-between-insert-or-merge-entity-and-insert-or-replace-entity
+            // Creat the update operation
             var updateOperation = TableOperation.InsertOrReplace(updateEntity);
 
             // Execute the insert operation.
@@ -201,6 +219,11 @@ namespace CWBSampleLibrary.Controllers
             else
             {
                 SampleEntity deleteEntity = (SampleEntity)retrievedResult.Result;
+
+                // REMOVE ANY RELATED MP3 IN BLOB STORAGE
+                Mp3sController mp3 = new Mp3sController();
+                mp3.Delete(deleteEntity);
+
                 TableOperation deleteOperation = TableOperation.Delete(deleteEntity);
 
                 // Execute the operation.
@@ -211,18 +234,36 @@ namespace CWBSampleLibrary.Controllers
             }
         }
 
+        /// <summary>
+        /// Returns the next row id value based on the entries in the table
+        /// </summary>
+        /// <returns>Row ID</returns>
         private String getNewMaxRowKeyValue()
         {
-            TableQuery<SampleEntity> query = new TableQuery<SampleEntity>().Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, partitionName));
 
-            int maxRowKeyValue = 0;
-            foreach (SampleEntity entity in table.ExecuteQuery(query))
+            TableQuery<SampleEntity> query = new TableQuery<SampleEntity>()
+                .Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, partitionName));
+
+            // MAKE SURE THERE ARE TABLE ROWS BEFORE ATTEMPTING TO ITERATE
+            var results = table.ExecuteQuery(query);
+            if (results.Any())
             {
-                int entityRowKeyValue = Int32.Parse(entity.RowKey);
-                if (entityRowKeyValue > maxRowKeyValue) maxRowKeyValue = entityRowKeyValue;
+
+                int maxRowKeyValue = 0;
+                foreach (SampleEntity entity in results)
+                {
+                    int entityRowKeyValue = Int32.Parse(entity.RowKey);
+                    if (entityRowKeyValue > maxRowKeyValue) maxRowKeyValue = entityRowKeyValue;
+                }
+
+                maxRowKeyValue++;
+                return maxRowKeyValue.ToString();
+
             }
-            maxRowKeyValue++;
-            return maxRowKeyValue.ToString();
+
+            // IF NO RESULTS, RETURN 1
+            return 1.ToString();
+
         }
     }
 }

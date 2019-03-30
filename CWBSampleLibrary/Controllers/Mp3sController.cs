@@ -12,6 +12,7 @@ using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.Queue;
 using Microsoft.WindowsAzure.Storage.Table;
+using Newtonsoft.Json;
 
 namespace CWBSampleLibrary.Controllers
 {
@@ -99,12 +100,12 @@ namespace CWBSampleLibrary.Controllers
             if (sampleEntity.Mp3Blob != null)
             {
                 // TODO: DELETE THE EXISTING BLOBS
-                Delete(id);
+                Delete(sampleEntity);
             }
 
             // CREATE NAME FROM Sample Data
             string title = sampleEntity.Title;
-            string fileName = string.Format("{0}{1}{2}", Guid.NewGuid(), title.Replace(" ", "-"), ".mp3");
+            string fileName = string.Format("{0}-{1}{2}", Guid.NewGuid(), title.Replace(" ", "-"), ".mp3");
             string path = "files/" + fileName;
 
             // GET THE BINARY SAMPLE BEING UPLOADED
@@ -126,7 +127,8 @@ namespace CWBSampleLibrary.Controllers
             table.Execute(updateoOperation);
 
             // ADD A MESSAGE IN THE QUEUE TO PICKUP THE NEW BLOB
-            getsamplegeneratorQueue().AddMessage(new CloudQueueMessage(System.Text.Encoding.UTF8.GetBytes(fileName)));
+            //getsamplegeneratorQueue().AddMessage(new CloudQueueMessage(System.Text.Encoding.UTF8.GetBytes(fileName)));
+            getsamplegeneratorQueue().AddMessage(new CloudQueueMessage(JsonConvert.SerializeObject(sampleEntity)));
             System.Diagnostics.Trace.WriteLine(String.Format("*** WebRole: Enqueued '{0}'", path));
 
             return Ok(sampleEntity);
@@ -143,8 +145,33 @@ namespace CWBSampleLibrary.Controllers
         }
 
         // DELETE: api/Mp3s/5
-        public void Delete(string id)
+        public void Delete(SampleEntity sample)
         {
+            if (sample.Mp3Blob != null)
+            {
+                // GET BLOB REFERENCE AND DELETE
+                var Mp3 = getaudiogalleryContainer()
+                    .GetDirectoryReference("files")
+                    .GetBlobReference(sample.Mp3Blob);
+                if (Mp3.Exists())
+                {
+                    Mp3.Delete();
+                }
+
+            }
+
+            if (sample.SampleMp3Blob != null)
+            {
+                // GET SAMPLE REFERENCE AND DELETE
+                var Mp3Sample = getaudiogalleryContainer()
+                    .GetDirectoryReference("samples")
+                    .GetBlobReference(sample.SampleMp3Blob);
+                if (Mp3Sample.Exists())
+                {
+                    Mp3Sample.Delete();
+                }
+            }
+            
         }
     }
 }
