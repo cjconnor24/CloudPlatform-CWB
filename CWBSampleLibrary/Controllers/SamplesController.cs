@@ -179,15 +179,17 @@ namespace CWBSampleLibrary.Controllers
             // Assign the result to a SampleEntity object.
             SampleEntity updateEntity = (SampleEntity)retrievedResult.Result;
 
+            Mp3sController mp3s = new Mp3sController();
+            mp3s.Delete(updateEntity);
+
+            // Create the updates on the object
             updateEntity.Title = sample.Title;
             updateEntity.Artist = sample.Artist;
-            //            updateEntity.Mp3Blob = sample.Mp3Blob;
-            //            updateEntity.SampleMp3Blob = sample.SampleMp3Blob;
-            updateEntity.SampleMp3Url = sample.SampleMp3Url;
+            updateEntity.Mp3Blob = null;
+            updateEntity.SampleMp3Blob = null;
+            updateEntity.SampleMp3Url = null;
 
-            // Create the TableOperation that inserts the sample entity.
-            // Note semantics of InsertOrReplace() which are consistent with PUT
-            // See: https://stackoverflow.com/questions/14685907/difference-between-insert-or-merge-entity-and-insert-or-replace-entity
+            // Creat the update operation
             var updateOperation = TableOperation.InsertOrReplace(updateEntity);
 
             // Execute the insert operation.
