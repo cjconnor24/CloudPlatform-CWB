@@ -47,14 +47,6 @@ namespace CWBSampleLibrary_WebJob
                 .GetDirectoryReference("samples")
                 .GetBlockBlobReference("sample-" + tableSample.Mp3Blob);
 
-            logger.WriteLine(inputBlob.Uri+" "+inputBlob.BlobType + " " +inputBlob.StorageUri + " ");
-            //Stream i = inputBlob.OpenRead();
-            logger.WriteLine("The URL is"+queueSample.Mp3Blob);
-            logger.WriteLine("The ID is " + tableSample.RowKey);
-
-
-//            logger.WriteLine("GenerateSample() started:");
-//            logger.WriteLine("Input blob is: " + blobInfo);
 
             // MAKE SURE THE INCOMING BLOB HAS AN MP3 EXTENSION
             if (Path.GetExtension(inputBlob.Name) == ".mp3")
@@ -79,7 +71,12 @@ namespace CWBSampleLibrary_WebJob
                 // SAVE THE METADATA
                 outputBlob.SetMetadata();
 
-                // TODO: WRITE THE SAMPLE DATA TO THE TABLE
+                // WRITE THE SAMPLE DATA TO THE TABLE
+                tableSample.SampleDate = DateTime.Now;
+                tableSample.SampleMp3Blob = outputBlob.Name;
+                tableSample.SampleMp3Url = outputBlob.Uri.ToString();
+                var updateRecord = TableOperation.InsertOrReplace(tableSample);
+                tableBinding.Execute(updateRecord);
 
             }
             else
