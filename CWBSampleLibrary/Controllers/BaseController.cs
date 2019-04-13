@@ -4,6 +4,7 @@ using System.Configuration;
 using System.Linq;
 using System.Web;
 using System.Web.Http;
+using System.Web.Http.Cors;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.Queue;
@@ -14,6 +15,7 @@ namespace CWBSampleLibrary.Controllers
     /// <summary>
     /// Base controller to keep the shared logic for both the samples and mp3 controllers
     /// </summary>
+    [EnableCors(origins:"*", headers:"*", methods:"*")]
     public abstract class BaseController : ApiController
     {
 
