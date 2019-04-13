@@ -28,6 +28,9 @@ namespace CWBSampleLibrary.Controllers
         protected CloudTableClient _tableClient;
         protected CloudTable table;
 
+        /// <summary>
+        /// Base controller constructor which initialises the neccessary resources
+        /// </summary>
         protected BaseController()
         {
             _storageAccount = CloudStorageAccount.Parse(ConfigurationManager.ConnectionStrings["AzureWebJobsStorage"].ToString());
@@ -36,11 +39,19 @@ namespace CWBSampleLibrary.Controllers
         }
 
 
+        /// <summary>
+        /// Returns an instance of the audio gallery container
+        /// </summary>
+        /// <returns></returns>
         protected CloudBlobContainer getaudiogalleryContainer()
         {
             return _blobStorageService.getCloudBlobContainer();
         }
 
+        /// <summary>
+        /// Returns an instance of the sample queue
+        /// </summary>
+        /// <returns></returns>
         protected CloudQueue getsamplegeneratorQueue()
         {
             return _queueStorageService.getCloudQueue();

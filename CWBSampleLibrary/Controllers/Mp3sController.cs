@@ -16,6 +16,10 @@ using Newtonsoft.Json;
 
 namespace CWBSampleLibrary.Controllers
 {
+
+    /// <summary>
+    /// MP3 Controller takes care of managing the Blob Mp3 uploads
+    /// </summary>
     public class Mp3sController : BaseController
     {
 

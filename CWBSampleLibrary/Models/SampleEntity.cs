@@ -6,9 +6,13 @@ using Microsoft.WindowsAzure.Storage.Table;
 
 namespace CWBSampleLibrary.Models
 {
+    /// <summary>
+    /// Class to represent the sample entity which will be stored
+    /// </summary>
     public class SampleEntity : TableEntity
     {
 
+        // SAMPLE PROPERTIES
         public string Title { get; set; }
         public string Artist { get; set; }
         public DateTime CreatedDate { get; set; }
@@ -19,6 +23,11 @@ namespace CWBSampleLibrary.Models
 
 
 
+        /// <summary>
+        /// Create new instance of SampleEntity
+        /// </summary>
+        /// <param name="partitionKey">The Partition Key for the Table</param>
+        /// <param name="sampleId">The RowId for the actual sample entity</param>
         public SampleEntity(string partitionKey, string sampleId)
         {
             PartitionKey = partitionKey;

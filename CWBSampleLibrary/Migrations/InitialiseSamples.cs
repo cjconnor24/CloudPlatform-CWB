@@ -29,13 +29,7 @@ namespace CWBSampleLibrary.Migrations
                 // Create table if it doesn't exist already
                 table.CreateIfNotExists();
 
-                // Create the batch operation.
-                //                TableBatchOperation batchOperation = new TableBatchOperation();
-
-                // Create a sample entity and add it to the table.
-
-                //                var insertOperation = TableOperation.Insert(sample1);
-                //                table.Execute(insertOperation);
+                // Create the titles and artists to seed initially
                 string[] Titles =
                 {
                     "Song One",
@@ -51,6 +45,7 @@ namespace CWBSampleLibrary.Migrations
                     "Artist Four"
                 };
 
+                // Loop through and add the entities
                 for (int i = 0; i < Titles.Length; i++)
                 {
                     SampleEntity sample = new SampleEntity(partitionName, getNewMaxRowKeyValue());
@@ -63,23 +58,9 @@ namespace CWBSampleLibrary.Migrations
                     sample.SampleDate = DateTime.Now;
 
                     var insertSample = TableOperation.Insert(sample);
-                    //                    batchOperation.Insert(sample);
                     table.Execute(insertSample);
 
-                    // Execute the batch operation.
-                    //                    table.ExecuteBatch(batchOperation);
-                    //                    batchOperation.Insert(sample);
                 }
-
-                //                try
-                //                {
-                //                    table.ExecuteBatch(batchOperation);
-                //                }
-                //                catch (Exception ex)
-                //                {
-                // LOG TO CONSOLE?
-                //                }
-
 
             }
 
@@ -87,6 +68,10 @@ namespace CWBSampleLibrary.Migrations
 
         }
 
+        /// <summary>
+        /// Get the next logical ID from the database based on the previous highest number
+        /// </summary>
+        /// <returns>The next ID in the sequence</returns>
         private static String getNewMaxRowKeyValue()
         {
             TableQuery<SampleEntity> query = new TableQuery<SampleEntity>().Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, partitionName));

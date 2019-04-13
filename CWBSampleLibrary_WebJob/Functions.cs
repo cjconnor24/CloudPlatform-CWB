@@ -15,20 +15,18 @@ namespace CWBSampleLibrary_WebJob
 {
     public class Functions
     {
-        // This class contains the application-specific WebJob code consisting of event-driven
-        // methods executed when messages appear in queues with any supporting code.
 
-        // Trigger method  - run when new message detected in queue. "samplegenerator" is name of queue.
-        // "audiogallery" is name of storage container; "images" and "thumbanils" are folder names. 
-        // "{queueTrigger}" is an inbuilt variable taking on value of contents of message automatically;
-        // the other variables are valued automatically.
-        //public static void GenerateSample(
-        //[QueueTrigger("samplegenerator")] String blobInfo,
-        //[Blob("audiogallery/files/{queueTrigger}")] CloudBlockBlob inputBlob,
-        //[Blob("audiogallery/samples/{queueTrigger}")] CloudBlockBlob outputBlob, TextWriter logger)
 
+        // TABLE NAME CONSTANT
         public const String TABLE_NAME = "Samples";
 
+        /// <summary>
+        /// Generates a sample based on the message in the queue
+        /// </summary>
+        /// <param name="queueSample">The sample from which to add the Mp3 Sample</param>
+        /// <param name="tableSample">The sample from the table</param>
+        /// <param name="tableBinding">The cloud table binding</param>
+        /// <param name="logger">Logged object for outputs</param>
         public static void GenerateSample(
             [QueueTrigger("samplegenerator")] SampleEntity queueSample,
             [Table(TABLE_NAME, "{PartitionKey}","{RowKey}")] SampleEntity tableSample,
@@ -39,15 +37,16 @@ namespace CWBSampleLibrary_WebJob
             BlobStorageService blobStorageService = new BlobStorageService();
             CloudBlobContainer audioGalleryContainer = blobStorageService.getCloudBlobContainer();
 
+            // GET THE INPUT BLOB FROM STORAGE
             CloudBlob inputBlob = audioGalleryContainer
                 .GetDirectoryReference("files")
                 .GetBlobReference(tableSample.Mp3Blob);
 
             // CREATE SAMPLE BLOB NAME
-            
             string newFileName = $"{Guid.NewGuid()}-{tableSample.Title.Replace(" ", "-")}-sample.mp3";
             string path = "samples/" + newFileName;
 
+            // CREATE THE OUTPUT BLOB
             CloudBlockBlob outputBlob = audioGalleryContainer
                 .GetBlockBlobReference(path);
 
@@ -66,14 +65,6 @@ namespace CWBSampleLibrary_WebJob
                 }
 
                 logger.WriteLine("GenerateSample() completed...");
-
-
-                // GET META DATA
-//                inputBlob.FetchAttributes();
-                // WRITE TITLE TO NEW SAMPLE BLOB
-//                outputBlob.Metadata["Title"] = inputBlob.Metadata["Title"];
-                // SAVE THE METADATA
-//                outputBlob.SetMetadata();
 
                 // WRITE THE SAMPLE DATA TO THE TABLE
                 tableSample.SampleDate = DateTime.Now;
