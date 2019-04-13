@@ -69,11 +69,11 @@ namespace CWBSampleLibrary_WebJob
 
 
                 // GET META DATA
-                inputBlob.FetchAttributes();
+//                inputBlob.FetchAttributes();
                 // WRITE TITLE TO NEW SAMPLE BLOB
-                outputBlob.Metadata["Title"] = inputBlob.Metadata["Title"];
+//                outputBlob.Metadata["Title"] = inputBlob.Metadata["Title"];
                 // SAVE THE METADATA
-                outputBlob.SetMetadata();
+//                outputBlob.SetMetadata();
 
                 // WRITE THE SAMPLE DATA TO THE TABLE
                 tableSample.SampleDate = DateTime.Now;
